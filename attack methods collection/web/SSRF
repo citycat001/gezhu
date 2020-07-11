@@ -43,4 +43,11 @@ stockApi=http://192.168.0.68/admin
 这些也是通用的绕过黑名单的方式，简单说就是改变形态从其他维度使黑名单失效。
 
 攻击场景D：
-绕过SSRF白名单防御。
+绕过SSRF白名单防御。服务只准许对指定URL的访问通过。
+可以采用的方法：
+1.使用@符号加入自己所希望访问的域名：https://expected-host@evil-host
+2.使用#符号加入自己所希望访问的域名：https://evil-host#expected-host
+3.使用DNS层级表示来加入：https://expected-host.evil-host
+4.编码URL。This is particularly useful if the code that implements the filter handles URL-encoded characters differently than the code that performs the back-end HTTP request.
+
+
