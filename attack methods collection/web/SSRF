@@ -1,4 +1,7 @@
-参考https://portswigger.net/web-security/ssrf
+参考：
+https://portswigger.net/web-security/ssrf
+https://portswigger.net/research/top-10-web-hacking-techniques-of-2017#1
+
 全称Server-side request forgery(SSRF)
 这种漏洞可以迫使一个合法服务主动向任意攻击者指定的domain/URL发出HTTP请求，包括该服务自身。可以以此掩盖攻击者真实身份，也能用这种攻击绕过可能的认证过程执行任意命令。
 
@@ -50,4 +53,25 @@ stockApi=http://192.168.0.68/admin
 3.使用DNS层级表示来加入：https://expected-host.evil-host
 4.编码URL。This is particularly useful if the code that implements the filter handles URL-encoded characters differently than the code that performs the back-end HTTP request.
 
+攻击场景E：
+利用open redirection来绕过SSRF过滤。这个是利用过滤器不会对服务自己的URL过滤的特点，利用同一个服务其他有漏洞的URL来绕过过滤。
+如果/product/nextProduct?currentProductId=6&path=http://evil-user.net可以跳转到http://evil-user.net，则可以利用如下方法绕过：
 
+POST /product/stock HTTP/1.0
+Content-Type: application/x-www-form-urlencoded
+Content-Length: 118
+
+stockApi=http://weliketoshop.net/product/nextProduct?currentProductId=6&path=http://192.168.0.68/admin
+
+Blind SSRF vulnerabilities
+https://portswigger.net/web-security/ssrf/blind
+这种SSRF从前端触发系统向后端发送HTTP请求，但是该请求的应答并不返回至前端。所有操作都是盲操作。通常情况下并没有比其它SSRF种类有更强的破坏性，但是也会引起任意代码执行。
+可以用out-of-band(OAST)https://portswigger.net/burp/application-security-testing/oast技术来探查有没有类似漏洞。可以触发系统向某个外部系统发出HTTP请求，例如使用Burp collaborator client来生成特定的域名，然后将该域名放入触发请求的数据中，看是否能得到从系统发出到这个特定域名的请求，如果有，则说明有类似问题。
+可能会出现只有DNS请求但没有HTTP请求的情况，可能是被挡了。
+通常不一定会成功，但是也可以用这个来试着尝试内部系统，看看能不能找到内部系统的漏洞。
+如果能够使得被攻击系统发送请求到攻击者控制的系统，那么可以构造带Payload应答展开对被攻击系统的client side攻击。
+
+其它类型SSRF：
+1.请求里只带有URL的一部分。后台服务会根据这个部分来映射到指定URL，如果可以实现知道映射的URL是什么，则可以利用。
+2.存在于数据中的URL。例如XML中的URL，这个可能存在XXE injection漏洞，然后转变为基于XXE的SSRF。
+3.在Referer header里的SSRF。https://portswigger.net/research/cracking-the-lens-targeting-https-hidden-attack-surface#aux
