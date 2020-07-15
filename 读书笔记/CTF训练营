@@ -1,1 +1,4 @@
-
+第1章 常用工具安装及使用
+1.Burp Suite.用于检测、修改web流量，或者展开web攻击。
+CTF中检查IP地址，一种黑名单，可以采用伪装的办法添加X-Forwarded-For, X-Real-IP等HTTP header。
+2.Sqlmap.用于SQL注入攻击。
