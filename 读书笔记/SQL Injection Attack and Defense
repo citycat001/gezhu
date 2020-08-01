@@ -1,0 +1,27 @@
+第一章 什么是SQL injection
+是一种通过影响SQL请求不经授权来获得、修改、删除数据库信息的漏洞。最早是在1998年由Rain Forest Puppy发表的文章“NT Web Technology Vulnerabilities”中出现。 
+这种影响包括在应用参数输入中插入或拼接SQL命令来改变输入内容，而后由后台数据库解析执行。这种改变并不符合应用的原定设计逻辑，并可以暴露数据库内所有信息。
+资源OWASP, Zone-H
+可能引起SQL注入的场景：
+1. Dynamic String Bulding. 通过字符串操作动态组装SQL命令，通过输入参数注入恶意内容。parameterized queries可以防止类似问题。
+2. Incorrectly Handled Escape Characters. 通过使用' 来测试攻击对象是否可能存在sql注入漏洞。其他特殊字符也有可能导致类似问题，例如oracle里的空格、||, . */ "。
+3. Incorrectly Handled Types. 直接在不使用'字符的语句中使用UNION语句来接入另外的SQL语句。
+特殊例子，使用语句 UNION SELECT “<? system($_REQUEST[‘cmd’]); ?>” INTO OUTFILE “/var/www/html/victim.com/cmd.php” -- 来向php文件中写入remote shell。
+4. Incorrectly Handled Query Assembly. 在代码中利用参数指定所要操作的数据库表来动态组装SQL，并第一类更灵活。攻击者可以利用参数来直接指定SQL语句操作哪些数据内容而不仅限于特定的数据库表。
+5. Incorrectly Handled Errors. 代码直接将数据库错误返回到用户界面，从而暴露数据库内容。例如SELECT * FROM table WHERE ID=' and 1 in (SELECT @@version) --
+6. Incorrectly Handled Multiple Submissions. 在连续多个列表提交中，攻击者可以跳过前面的步骤直接通过URL调用后面的列表提交操作，通常后面没有太多限制。
+http://www.victim.com/form.php?form=form2&param=' SQL Success --
+
+数据库配置本身也会影响安全，需要注意不同权限的操作要用不同的数据库用户来操作。数据库的metadata MySQL:INFORMATION_SCHEMA, Oracle: ALL_TABLES, ALL_TAB_COLUMNS, 
+-- Oracle statement to enumerate all accessible tables for the current user
+SELECT OWNER, TABLE_NAME FROM ALL_TABLES ORDER BY TABLE_NAME;
+-- MySQL statement to enumerate all accessible tables and databases for the
+-- current user
+SELECT table_schema, table_name FROM information_schema.tables;
+-- MS SQL statement to enumerate all accessible tables using the system
+-- tables
+SELECT name FROM sysobjects WHERE xtype = 'U';
+-- MS SQL statement to enumerate all accessible tables using the catalog
+-- views
+SELECT name FROM sys.tables;
+
