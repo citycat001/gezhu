@@ -50,7 +50,8 @@ SQL错误会返回并出现在哪里：
 4. 返回500或302
 5. 无任何页面返回信息或只有通用信息。
 
-利用错误信息了解系统SQL server errors:
+利用错误信息了解系统
+SQL server errors:
 请求：http://www.victim.com/showproducts.aspx?category=attacker'
 Server Error in '/' Application. Unclosed quotation mark before the character string 'attacker;'. Description: An unhandled exception occurred during the execution of the current web request. Please review the stack trace for more information
 about the error and where it originated in the code. Exception Details: System.Data.SqlClient.SqlException: Unclosed quotation mark before the character string 'attaker;'.
@@ -75,3 +76,13 @@ Server Error in '/' Application. Syntax error converting the nvarchar value 'Cla
 mysql errors:
 1. Warning: mysql_fetch_assoc(): supplied argument is not a valid MySQL result
 2. You have an error in your SQL syntax;
+3. Error: Unknown column 'attacker' in 'where clause'
+
+Oracle errors:
+1. java.sql.SQLException: ORA-00933: SQL command not properly ended at
+2. 语句需要用'结尾，如果没有则会出现后面的内容。Error: SQLException java.sql.SQLException: ORA-01756: quoted string not properly terminated
+Exception Details: System.Data.OleDb.OleDbException: One or more errors occurred during processing of command. ORA-00933: SQL command not properly ended
+3. ociparse()用于准备Oracle执行语句。Warning: ociparse() [function.ociparse]: ORA-01756: quoted string not properly terminated
+4. Warning: ociexecute(): supplied argument is not a valid OCI8-Statement resource
+5. 当攻击者遇到嵌套SQL命令时，如果在操作嵌套内SQL语句时把嵌套外SQL语句的后续部分注释掉之后，会出现类似错误。java.sql.SQLException: ORA-00907: missing right parenthesis
+
