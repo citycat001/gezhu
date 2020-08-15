@@ -86,3 +86,18 @@ Exception Details: System.Data.OleDb.OleDbException: One or more errors occurred
 4. Warning: ociexecute(): supplied argument is not a valid OCI8-Statement resource
 5. 当攻击者遇到嵌套SQL命令时，如果在操作嵌套内SQL语句时把嵌套外SQL语句的后续部分注释掉之后，会出现类似错误。java.sql.SQLException: ORA-00907: missing right parenthesis
 
+应用返回的错误
+由于应用通常会屏蔽数据库错误，使得SQL injection问题更加隐蔽。没有通用的准则来判断应用是否存在注入漏洞，同时新的攻击场景层出不穷，那么只能认真的从各种细节判断。
+发现注入漏洞的流程通常包括：识别用户数据传输入口、修改传入应用的用户数据、发现从应用返回的变化结果。
+
+要注意区分应用本身的错误和数据库的错误。
+可以尝试的注入内容：
+永真句：SELECT * FROM products WHERE category='bikes' OR '1'='1'，问题是如果表太大，很容易花很长时间才能得到结果。
+永假句：SELECT * FROM products WHERE category='bikes' AND '1'='2'，通常不会有任何输出，但是可以配合UNION语句执行后续内容。
+
+HTTP错误码：
+SQL语句发生错误时通常引起HTTP 500错误码。有时也会被HTTP 302应用引导到特定的错误页面。
+
+应答的数据量大小区别也能作为一种错误码，甚至于微小的变化都可能代表有可以利用的机会。其他的变化也可以当做指示器，例如是否显示产品标识、是否有用户数据出现。
+盲注正是利用这种细微差别来识别并最终利用注入漏洞。
+
